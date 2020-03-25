@@ -1,0 +1,89 @@
++var wndMain: wnd@Wnd
++var drawMain: wnd@Draw
++var WIDTH: float
++var HEIGHT: float
++var bulletList_P: list<\bullet@Bullet>
++var bulletList_E: list<\bullet@Bullet>
++var enemy: \enemy@Enemy
++var player: \player@Player
++var font: draw@Font
++var start_time: int
++var resulttxt: []char
++var p_ai: \player_ai@player_ai
+func main()
+	do @resulttxt :: ""
+	var result: []char
+	do result :: wndex@inputBox(null, "学習回数,読み込む回数,操作F,学習方法", "Q Learning", "0,100,0,1", null)
+	if(result =& null)
+		ret
+	end if
+	var data: [][]char :: result.split(",")
+	var existed: bool
+	var learn_method: int :: data[3].toInt(&existed)
+	do @start_time :: lib@sysTime()
+	do dbg@print("入力値:\{data[0].toInt(&existed)},\{data[1].toInt(&existed)},\{data[2].toInt(&existed)},\{data[3].toInt(&existed)}\n")
+	do @resulttxt :~ "入力値:\{data[0].toInt(&existed)},\{data[1].toInt(&existed)},\{data[2].toInt(&existed)},\{data[3].toInt(&existed)}\n"
+	
+	do @p_ai :: #\player_ai@player_ai
+	
+	
+	switch(learn_method)
+	case 0
+		var learn: \learn@Learn :: #\learn@Learn
+		do learn.traincount :: data[0].toInt(&existed)
+		do learn.flag_p :: data[2].toInt(&existed)
+		do learn.filename :: data[1].toInt(&existed)
+		do learn.readfile()
+		
+		while(wnd@act())
+			do learn.mainloop()
+		end while
+		do learn.writefile()
+	case 1
+		var learn2: \learn2@Learn :: #\learn2@Learn
+		do learn2.traincount :: data[0].toInt(&existed)
+		do learn2.flag_p :: data[2].toInt(&existed)
+		do learn2.filename :: data[1].toInt(&existed)
+		do learn2.readfile()
+		
+		while(wnd@act())
+			do learn2.mainloop()
+		end while
+		do learn2.writefile()
+	case 2
+		var learn3: \learn3@Learn :: #\learn3@Learn
+		do learn3.traincount :: data[0].toInt(&existed)
+		do learn3.flag_p :: data[2].toInt(&existed)
+		do learn3.filename :: data[1].toInt(&existed)
+		do learn3.readfile()
+		
+		while(wnd@act())
+			do learn3.mainloop()
+		end while
+		do learn3.writefile()
+	case 3
+		var learn4: \learn4@Learn :: #\learn4@Learn
+		do learn4.traincount :: data[0].toInt(&existed)
+		do learn4.flag_p :: data[2].toInt(&existed)
+		do learn4.filename :: data[1].toInt(&existed)
+		do learn4.readfile()
+		
+		while(wnd@act())
+			do learn4.mainloop()
+		end while
+		do learn4.writefile()
+	case 4
+		var learn5: \learn5@Learn :: #\learn5@Learn
+		do learn5.traincount :: data[0].toInt(&existed)
+		do learn5.flag_p :: data[2].toInt(&existed)
+		do learn5.filename :: data[1].toInt(&existed)
+		do learn5.readfile()
+		
+		while(wnd@act())
+			do learn5.mainloop()
+		end while
+		do learn5.writefile()
+	end switch
+	
+	
+end func

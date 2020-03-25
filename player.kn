@@ -1,0 +1,135 @@
++class Player(game@Rect)
+	+var flag: int
+	var time: int
+	+var hp: int
+	+var moveF: int
+	var reload: int
+	+func init(x: float, y: float, width: float, height: float, veloX: float, veloY: float, flag: int)
+		do me.x :: x
+		do me.y :: y
+		do me.width :: width
+		do me.height :: height
+		do me.veloX :: veloX
+		do me.veloY :: veloY
+		do me.flag :: flag
+		do me.hp :: 10
+	end func
+	+func draw()
+		do \main@font.draw(1.0, 1.0, "Player HP:\{me.hp}", 0xFFFFCCCC)
+		do draw2d@rect(me.x, me.y, me.width, me.height, 0xFFCC3333)
+	end func
+	+func control(move: int)
+		
+		do me.moveF :: move
+		var v: float :: 15.0
+		switch(me.moveF)
+		case 0
+			do me.veloY :: -v
+			do me.veloX :: 0.0
+		case 1
+			do me.veloY :: -v
+			do me.veloX :: v
+		case 2
+			do me.veloX :: v
+			do me.veloY :: 0.0
+		case 3
+			do me.veloY :: v
+			do me.veloX :: v
+		case 4
+			do me.veloY :: v
+			do me.veloX :: 0.0
+		case 5
+			do me.veloY :: v
+			do me.veloX :: -v
+		case 6
+			do me.veloX :: -v
+			do me.veloY :: 0.0
+		case 7
+			do me.veloX :: -v
+			do me.veloY :: -v
+		case 8
+			do me.veloX :: 0.0
+			do me.veloY :: 0.0
+		end switch
+		
+		if(me.y + me.height > \main@HEIGHT)
+			do me.y :: \main@HEIGHT - me.height
+		end if
+		if(me.y < 0.0)
+			do me.y :: 0.0
+		end if
+		if(me.x < 0.0)
+			do me.x :: 0.0
+		end if
+		if(me.x + me.width > \main@WIDTH)
+			do me.x :: \main@WIDTH - me.width
+		end if
+	end func
+	+func shoot()
+		
+		var bx: float :: me.veloX
+		var by: float :: me.veloY
+		var bullet: \bullet@Bullet :: #\bullet@Bullet
+		do bullet.init(me.x + me.width / 2.0, me.y + me.height / 2.0, 50.0, 50.0, bx, by, me.moveF)
+		do \main@bulletList_P.head()
+		if(^\main@bulletList_P < 1 & me.moveF <> 8 & me.time - me.reload > 15)
+			do \main@bulletList_P.add(bullet)
+			do me.reload :: me.time
+		end if
+		
+	end func
+	+func act()
+		do me.time :+ 1
+		do me.x :+ me.veloX
+		do me.y :+ me.veloY
+	end func
+	
+	+func play(move: int, shoot: int, flag: int)
+		
+		var shootF: int
+		switch(flag)
+		case 0
+			if(input@key(%a) = true)
+				do move :: 6
+			end if
+			if(input@key(%d) = true)
+				do move :: 2
+			end if
+			if(input@key(%w) = true)
+				do move :: 0
+			end if
+			if(input@key(%s) = true)
+				do move :: 4
+			end if
+			if(input@key(%w) = true & input@key(%d) = true)
+				do move :: 1
+			end if
+			if(input@key(%s) = true & input@key(%d) = true)
+				do move :: 3
+			end if
+			if(input@key(%a) = true & input@key(%s) = true)
+				do move :: 5
+			end if
+			if(input@key(%w) = true & input@key(%a) = true)
+				do move :: 7
+			end if
+			if((input@key(%w) = true & input@key(%s) = true) | (input@key(%a) = true & input@key(%d) = true) | (input@key(%a) = false & input@key(%d) = false & input@key(%w) = false & input@key(%s) = false))
+				do move :: 8
+			end if
+			if(input@key(%space) = true)
+				do shootF :: 1
+			end if
+		default
+			;learn側から操作
+			if(shoot = 1)
+				do shootF :: 1
+			end if
+		end switch
+		
+		do me.control(move)
+		if(shootF = 1)
+			do me.shoot()
+		end if
+		do me.act()
+	end func
+end class

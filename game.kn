@@ -1,0 +1,110 @@
++class Game()
+	*func ctor()
+		var w: int
+		var h: int
+		do wnd@screenSize(&w, &h)
+		do \main@WIDTH :: w $ float / 10.0 * 8.0
+		do \main@HEIGHT :: h $ float / 10.0 * 8.0
+		
+		do \main@wndMain :: wnd@makeWnd(null, %aspect, \main@WIDTH $ int, \main@HEIGHT $ int, "Title")
+		do \main@drawMain :: wnd@makeDraw(\main@wndMain, 0, 0, \main@WIDTH $ int, \main@HEIGHT $ int, %scale, %scale, false)
+		do \main@font :: draw@makeFont("Segoe UI Black", 20, false, false, false, 20.0)
+		
+		do \main@wndMain.setPos(w / 10, h / 10, \main@WIDTH $ int, \main@HEIGHT $ int)
+		do \main@enemy :: #\enemy@Enemy
+		do \main@player :: #\player@Player
+		do \main@bulletList_P :: #list<\bullet@Bullet>
+		do \main@bulletList_E :: #list<\bullet@Bullet>
+		do \main@enemy.init(0.0, 0.0, 100.0, 100.0, 0.0, 0.0, 1)
+		do \main@player.init(\main@WIDTH, \main@HEIGHT, 100.0, 100.0, 0.0, 0.0, 0)
+	end func
+	
+	+func init()
+		do \main@enemy.init(0.0, 0.0, 100.0, 100.0, 0.0, 0.0, 1)
+		do \main@player.init(\main@WIDTH, \main@HEIGHT, 100.0, 100.0, 0.0, 0.0, 0)
+		do \main@bulletList_E.head()
+		while(!\main@bulletList_E.term())
+			do \main@bulletList_E.del()
+		end while
+		do \main@bulletList_P.head()
+		while(!\main@bulletList_P.term())
+			do \main@bulletList_P.del()
+		end while
+	end func
+	
+	+func update()
+		do \main@bulletList_P.head()
+		while(!\main@bulletList_P.term())
+			var delF: int :: 0
+			var item: \bullet@Bullet :: \main@bulletList_P.get()
+			do item.play()
+			if(item.vanish() = -1)
+				do delF :: 1
+			end if
+			if((\main@enemy.x + 50.0 - item.x - 25.0).abs() < 50.0 + 25.0 & (\main@enemy.y + 50.0 - item.y - 25.0).abs() < 50.0 + 25.0)
+				do \main@enemy.hp :- 1
+				
+				do delF :: 1
+			end if
+			if(delF = 1)
+				do \main@bulletList_P.del()
+			else
+				do \main@bulletList_P.next()
+			end if
+		end while
+		
+		do \main@bulletList_E.head()
+		while(!\main@bulletList_E.term())
+			var delF: int :: 0
+			var item: \bullet@Bullet :: \main@bulletList_E.get()
+			do item.play()
+			if(item.vanish() = -1)
+				do delF :: 1
+			end if
+			if((\main@player.x + 50.0 - item.x - 25.0).abs() < 50.0 + 25.0 & (\main@player.y + 50.0 - item.y - 25.0).abs() < 50.0 + 25.0)
+				do \main@player.hp :- 1
+				do delF :: 1
+			end if
+			if(delF = 1)
+				do \main@bulletList_E.del()
+			else
+				do \main@bulletList_E.next()
+			end if
+		end while
+		
+		;弾同士の反発
+		do \main@bulletList_E.head()
+		while(!\main@bulletList_E.term())
+			do \main@bulletList_P.head()
+			while(!\main@bulletList_P.term())
+				if((\main@bulletList_P.get().x + 25.0 - \main@bulletList_E.get().x - 25.0).abs() < 25.0 + 25.0 & (\main@bulletList_P.get().y + 25.0 - \main@bulletList_E.get().y - 25.0).abs() < 25.0 + 25.0)
+					do \main@bulletList_P.get().veloY :$ \main@bulletList_E.get().veloX
+					do \main@bulletList_P.get().veloX :$ \main@bulletList_E.get().veloY
+					do \main@bulletList_P.get().flag :$ \main@bulletList_E.get().flag
+					do \main@bulletList_P.get().flag :$ \main@bulletList_E.get().flag
+					
+				end if
+				do \main@bulletList_P.next()
+			end while
+			do \main@bulletList_E.next()
+		end while
+	end func
+	+func draw()
+		do draw@render(60)
+		
+		do \main@player.draw()
+		do \main@enemy.draw()
+		do \main@bulletList_E.head()
+		while(!\main@bulletList_E.term())
+			var item: \bullet@Bullet :: \main@bulletList_E.get()
+			do item.draw(1)
+			do \main@bulletList_E.next()
+		end while
+		do \main@bulletList_P.head()
+		while(!\main@bulletList_P.term())
+			var item: \bullet@Bullet :: \main@bulletList_P.get()
+			do item.draw(0)
+			do \main@bulletList_P.next()
+		end while
+	end func
+end class

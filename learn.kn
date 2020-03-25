@@ -1,0 +1,532 @@
++var q_table: [][][][][][][][][]float
++var x_num: int :: 3
++var y_num: int :: 3
+
++class Learn()
+	var game: \game@Game
+	+var traincount: int
+	+var flag_p: int
+	+var filename: int
+	var count: int
+	var time: int
+	var move_p: int
+	var move_flag_e: int
+	var e_win: int
+	var p_win: int
+	var e_point: int
+	var p_point: int
+	var next_m: int
+	var target_pos_e: int
+	var next_s: int
+	*func ctor()
+		do me.count :: 1
+		;max q_table[8][8][8][8][8][8][1][8][8] プレイヤーのshootは無視する（あまり影響がないと思うし、1億7000万から8000万に要素数を減らしたいから）
+		do @q_table :: #[@x_num * @y_num, 9, @x_num * @y_num, 9, @x_num * @y_num, 9, 2, @x_num * @y_num, 9]float
+		do me.game :: #\game@Game
+	end func
+	+func mainloop()
+		do me.time :+ 1
+		if(me.traincount > me.count)
+			do me.game.update()
+			do me.learn_E()
+			do me.learn_P()
+			do me.init()
+		else
+			do me.game.draw()
+			do me.game.update()
+			do me.learn_E()
+			do me.learn_P()
+			do me.init()
+		end if
+	end func
+	+func init()
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		if(\main@enemy.hp <= 0)
+			do me.p_win :+ 1
+		end if
+		if(\main@player.hp <= 0)
+			do me.e_win :+ 1
+		end if
+		
+		if(\main@enemy.hp <= 0 | \main@player.hp <= 0)
+			do me.move_flag_e :: 0
+			if(me.traincount = me.count)
+				do \main@resulttxt :~ "\nかかった時間は\{(lib@sysTime() $ float - \main@start_time $ float) / 1000.0 / 60.0}分でした。\n"
+			end if
+			do me.p_point :+ 10 - \main@enemy.hp
+			do me.e_point :+ 10 - \main@player.hp
+			do dbg@print("勝率:\{me.e_win $ float / me.count $ float * 100.0}%, 回数:\{me.count}, 勝利数:(\{me.e_win}:\{me.p_win}), 体力:(\{\main@enemy.hp}:\{\main@player.hp}), ポイント:(\{me.e_point},\{me.p_point})\n")
+			do \main@resulttxt :~ "勝率:\{me.e_win $ float / me.count $ float * 100.0}%, 回数:\{me.count}, 勝利数:(\{me.e_win}:\{me.p_win}), 体力:(\{\main@enemy.hp}:\{\main@player.hp}), ポイント:(\{me.e_point},\{me.p_point}),  t=\{(lib@sysTime() $ float - \main@start_time $ float) / 1000.0 / 60.0}分\n"
+			if(me.count % 10 = 0)
+				var h: file@Writer :: file@makeWriter("now_data.txt", true)
+				do h.writeStr("勝率:\{me.e_win $ float / me.count $ float * 100.0}%, 回数:\{me.count}, 勝利数:(\{me.e_win}:\{me.p_win}), 体力:(\{\main@enemy.hp}:\{\main@player.hp}), ポイント:(\{me.e_point},\{me.p_point}),  t=\{(lib@sysTime() $ float - \main@start_time $ float) / 1000.0 / 60.0}分\n")
+				do h.fin()
+			end if
+			
+			do me.game.init()
+			var savecount: int
+			if(me.traincount <= 100)
+				do savecount :: 10
+			elif(me.traincount <= 1000)
+				do savecount :: 100
+			elif(me.traincount <= 3000)
+				do savecount :: 500
+			else
+				do savecount :: 1000
+			end if
+			
+			if(me.count % savecount = 0)
+				var handle: file@Writer :: file@makeWriter("q_table_\{me.filename + me.count}.txt", false)
+				for i1(0, @x_num * @y_num - 1)
+					for i2(0, 8)
+						for i3(0, @x_num * @y_num - 1)
+							for i4(0, 8)
+								for i5(0, @x_num * @y_num - 1)
+									for i6(0, 8)
+										for i7(0, 1)
+											for i8(0, @x_num * @y_num - 1)
+												for i9(0, 8)
+													do handle.writeFloat(@q_table[i1][i2][i3][i4][i5][i6][i7][i8][i9]) {小数を書き込む}
+													do handle.writeChar(',')
+												end for
+											end for
+										end for
+									end for
+								end for
+							end for
+						end for
+					end for
+				end for
+				do handle.fin()
+				do \main@resulttxt :~ "保存しました。 t=\{(lib@sysTime() $ float - \main@start_time $ float) / 1000.0 / 60.0}分\n"
+				do dbg@print("保存しました\n")
+			end if
+			do me.count :+ 1
+		end if
+	end func
+	
+	+func get_reward_E(ep: int, pp: int, bep: int, bpp: int): float
+		if(ep = bpp)
+			ret - 77.0
+		elif(bep = pp)
+			ret 55.0
+		end if
+		ret - 1.0
+	end func
+	
+	+func learn_E()
+		
+		var q_max: float :: -999.9
+		var q_max_next: float :: -999.9
+		var r: float
+		var next_move: int
+		var next_shoot: int
+		var bpp: int
+		var bpm: int
+		var bep: int
+		var bem: int
+		
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;今の状態
+		var ep: int :: me.get_next_pos(\main@enemy.x + \main@enemy.width / 2.0, \main@enemy.y + \main@enemy.height / 2.0, 8)
+		
+		if(^\main@bulletList_P <> 0)
+			do \main@bulletList_P.head()
+			do bpp :: me.get_next_pos(\main@bulletList_P.get().x + \main@bulletList_P.get().width / 2.0, \main@bulletList_P.get().y + \main@bulletList_P.get().height / 2.0, 8)
+			do bpm :: \main@bulletList_P.get().flag
+		else
+			do bpm :: 8
+		end if
+		var pp: int :: me.get_next_pos(\main@player.x + \main@player.width / 2.0, \main@player.y + \main@player.height / 2.0, 8)
+		var pm: int :: \main@player.moveF
+		if(^\main@bulletList_E <> 0)
+			do \main@bulletList_E.head()
+			do bep :: me.get_next_pos(\main@bulletList_E.get().x + \main@bulletList_E.get().width / 2.0, \main@bulletList_E.get().y + \main@bulletList_E.get().height / 2.0, 8)
+			do bem :: \main@bulletList_E.get().flag
+		else
+			do bem :: 8
+		end if
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;次の状態
+		var _bpp: int
+		var _bpm: int
+		var _bep: int
+		var _bem: int
+		if(^\main@bulletList_P <> 0)
+			do \main@bulletList_P.head()
+			do _bpp :: me.enemy_next_pos(ep, \main@bulletList_P.get().flag)
+			do _bpm :: \main@bulletList_P.get().flag
+		else
+			do _bpm :: 8
+		end if
+		var _pp: int :: me.enemy_next_pos(pp, \main@player.moveF)
+		var _pm: int :: \main@player.moveF
+		
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;全方向探索
+		for next_move2(0, 8)
+			var _ep: int :: me.enemy_next_pos(ep, next_move2)
+			for next_shoot2(0, 1)
+				if(bem = 8 & next_move2 <> 8)
+					do _bep :: me.enemy_next_pos(ep, next_move2) * next_shoot2
+					do _bem :: next_move2 * next_shoot2 + 8 * (1 - next_shoot2)
+				elif(bem <> 8)
+					do _bep :: me.enemy_next_pos(bep, bem)
+					do _bem :: bem
+				else
+					do _bep :: 0
+					do _bem :: 8
+				end if
+				
+				;次の次のQ値最大を求める
+				for move(0, 8)
+					for shoot(0, 1)
+						if(@q_table[_pp][_pm][_bpp][_bpm][_ep][move][shoot][_bep][_bem] > q_max_next)
+							do q_max_next :: @q_table[_pp][_pm][_bpp][_bpm][_ep][move][shoot][_bep][_bem]
+						end if
+					end for
+				end for
+				;Q値の更新
+				var eta: float :: 0.2
+				var gamma: float :: 0.8
+				do r :: me.get_reward_E(_ep, _pp, _bem <> 8 ?(bep, -1), _bpm <> 8 ?(_bpp, -1))
+				
+				do @q_table[pp][pm][bpp][bpm][ep][next_move2][next_shoot2][bep][bem] :: @q_table[pp][pm][bpp][bpm][ep][next_move2][next_shoot2][bep][bem] * (1.0 - eta) + eta * (r + gamma * q_max_next)
+			end for
+		end for
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		
+		
+		
+		;Q値最大の行動を選ぶ
+		for move(0, 8)
+			for shoot(0, 1)
+				if(@q_table[pp][pm][bpp][bpm][ep][move][shoot][bep][bem] > q_max)
+					do q_max :: @q_table[pp][pm][bpp][bpm][ep][move][shoot][bep][bem]
+					
+					if(me.count <= (me.traincount $ float * 0.2) $ int & me.count % 2 = 0)
+						
+						if(me.time %lib@rnd(1, 30) = 0)
+							do me.next_m :: me.enemy_next_pos(ep, lib@rnd(0, 8))
+							do me.next_s :: lib@rnd(0, 1)
+						end if
+						
+						
+					else
+						do next_move :: move
+						do next_shoot :: shoot
+						do me.next_m :: me.enemy_next_pos(ep, next_move)
+						do me.next_s :: next_shoot
+					end if
+					
+				end if
+			end for
+		end for
+		
+		
+		
+		
+		if(me.time % 500 = 0)
+			;do dbg@print("m:\{me.next_m},s:\{me.next_s},q:\{q_max}\n")
+			;do dbg@print("t:\{me.time}\n\{pp},\{pm},\{bpp},\{bpm},\{ep},\{me.enemy_move_to_pos(me.next_m)},\{me.next_s},\{bep},\{bem}\nq_now:\{@q_table[pp][pm][bpp][bpm][ep][me.next_m][me.next_s][bep][bem]}\n")
+		end if
+		
+		
+		
+		;行動の実行
+		do \main@enemy.play(me.enemy_move_to_pos(me.next_m), me.next_s)
+	end func
+	+func enemy_next_pos(ep: int, move: int): int
+		var x: int :: ep % @y_num
+		var y: int :: (ep - x) / @y_num
+		switch(move)
+		case 0
+			do y :- 1
+		case 1
+			do x :+ 1
+			do y :- 1
+		case 2
+			do x :+ 1
+		case 3
+			do x :+ 1
+			do y :+ 1
+		case 4
+			do y :+ 1
+		case 5
+			do x :- 1
+			do y :+ 1
+		case 6
+			do x :- 1
+		case 7
+			do x :- 1
+			do y :- 1
+		case 8
+		end switch
+		
+		if(x < 0)
+			do x :: 0
+		elif(x > @x_num - 1)
+			do x :: @x_num - 1
+		end if
+		if(y < 0)
+			do y :: 0
+		elif(y > @y_num - 1)
+			do y :: @y_num - 1
+		end if
+		
+		ret x + y * @y_num
+	end func
+	+func enemy_move_to_pos(next_pos: int): int
+		var ep: int :: me.get_next_pos(\main@enemy.x + \main@enemy.width / 2.0, \main@enemy.y + \main@enemy.height / 2.0, 8)
+		if(ep <> next_pos)
+			do me.move_flag_e :: 1
+		end if
+		
+		var x: int :: next_pos % @y_num
+		var y: int :: (next_pos - x) / @y_num
+		var flag: int
+		var ex: float :: \main@enemy.x + \main@enemy.width / 2.0
+		var ey: float :: \main@enemy.y + \main@enemy.height / 2.0
+		var X: float :: \main@WIDTH $ float / @x_num $ float * x $ float + \main@WIDTH $ float / @x_num $ float / 2.0
+		var Y: float :: \main@HEIGHT $ float / @y_num $ float * y $ float + \main@HEIGHT $ float / @y_num $ float / 2.0
+		
+		if(ex < X - 15.0 & ey < Y - 15.0)
+			do flag :: 3
+		elif(ex > X + 15.0 & ey > Y + 15.0)
+			do flag :: 7
+		elif(ex < X - 15.0 & ey > Y + 15.0)
+			do flag :: 1
+		elif(ex > X + 15.0 & ey < Y - 15.0)
+			do flag :: 5
+		elif(ex > X + 15.0)
+			do flag :: 6
+		elif(ex < X - 15.0)
+			do flag :: 2
+		elif(ey > Y + 15.0)
+			do flag :: 0
+		elif(ey < Y - 15.0)
+			do flag :: 4
+		else
+			do me.move_flag_e :: 0
+			do flag :: 8
+		end if
+		{if(me.time % 500 = 0)
+			do dbg@print("x:\{x},y:\{y},next_pos:\{next_pos},time:\{me.time},flag_e:\{me.move_flag_e},flag:\{flag}\n")
+		end if}
+		ret flag
+	end func
+	
+	+func get_next_pos(x: float, y: float, move: int): int
+		var width: float :: \main@WIDTH / @x_num $ float
+		var height: float :: \main@HEIGHT / @y_num $ float
+		
+		var v: float :: 15.0
+		switch(move)
+		case 0
+			do y :- v
+		case 1
+			do x :+ v
+			do y :- v
+		case 2
+			do x :+ v
+		case 3
+			do x :+ v
+			do y :+ v
+		case 4
+			do y :+ v
+		case 5
+			do x :- v
+			do y :+ v
+		case 6
+			do x :- v
+		case 7
+			do x :- v
+			do y :- v
+		case 8
+		end switch
+		if(x < 0.0)
+			do x :: 0.0
+		end if
+		if(x > \main@WIDTH)
+			do x :: \main@WIDTH
+		end if
+		if(y < 0.0)
+			do y :: 0.0
+		end if
+		if(y > \main@HEIGHT)
+			do y :: \main@HEIGHT
+		end if
+		for Y(0, @y_num - 1)
+			for X(0, @x_num - 1)
+				if(x >= X $ float * width & x <= (X $ float + 1.0) * width & y >= Y $ float * height & y <= (Y $ float + 1.0) * height)
+					ret X + Y * @y_num
+				end if
+			end for
+		end for
+	end func
+	+func learn_P()
+		var p_ai: \player_ai@player_ai
+		var shoot: int
+		
+		switch(me.flag_p)
+		case 1
+			;ランダムAI
+			if(me.time %lib@rnd(1, 30) = 0)
+				do me.move_p :: lib@rnd(0, 8)
+			end if
+			do shoot :: lib@rnd(0, 1)
+		case 2
+			;敵の方向を撃ち、敵の弾をよけるAI
+			do shoot :: lib@rnd(0, 1)
+			;敵の方向へ弾を撃つ
+			var p_pos: int :: me.get_next_pos(\main@player.x, \main@player.y, 8)
+			var px: int :: p_pos % @y_num
+			var py: int :: (p_pos - px) / @y_num
+			var e_pos: int :: me.get_next_pos(\main@enemy.x, \main@enemy.y, 8)
+			var ex: int :: e_pos % @y_num
+			var ey: int :: (e_pos - ex) / @y_num
+			if(px = ex)
+				if(lib@rnd(1, 100) <= 50)
+					do me.move_p :: 0
+				else
+					do me.move_p :: 4
+				end if
+			elif(py = ey)
+				if(lib@rnd(1, 100) <= 50)
+					do me.move_p :: 2
+				else
+					do me.move_p :: 6
+				end if
+			elif((px > ex & py > ey) | (px < ex & py < ey))
+				if(lib@rnd(1, 100) <= 50)
+					do me.move_p :: 3
+				else
+					do me.move_p :: 7
+				end if
+			elif((px > ex & py < ey) | (px < ex & py > ey))
+				if(lib@rnd(1, 100) <= 50)
+					do me.move_p :: 1
+				else
+					do me.move_p :: 5
+				end if
+			end if
+			;敵の弾を避ける(こっちを敵に弾を当てるより優先するから下に書いている。)
+			do \main@bulletList_E.head()
+			while(!\main@bulletList_E.term())
+				var be: \bullet@Bullet :: \main@bulletList_E.get()
+				var be_pos: int :: me.get_next_pos(be.x, be.y, 8)
+				var bex: int :: be_pos % @y_num
+				var bey: int :: (be_pos - bex) / @y_num
+				if(px = bex & (be.flag = 4 | be.flag = 0))
+					if(px = @x_num - 1)
+						do me.move_p :: 6
+					else
+						do me.move_p :: 2
+					end if
+				elif(py = bey & (be.flag = 2 | be.flag = 6))
+					if(py = @y_num - 1)
+						do me.move_p :: 0
+					else
+						do me.move_p :: 4
+					end if
+				elif(((px > bex & py > bey) & be.flag = 3) | ((px < ex & py < ey) & be.flag = 7) | ((px > bex & py < bey) & be.flag = 1) | ((px < bex & py > bey) & be.flag = 5))
+					if(px = @x_num - 1)
+						do me.move_p :: 6
+					else
+						do me.move_p :: 2
+					end if
+				end if
+				do \main@bulletList_E.next()
+			end while
+		case 3
+			var bpx: float :: -999.0
+			var bpy: float :: -999.0
+			do \main@bulletList_P.head()
+			while(!\main@bulletList_P.term())
+				var bp: \bullet@Bullet :: \main@bulletList_P.get()
+				do bpx :: bp.x + bp.width / 2.0
+				do bpy :: bp.y + bp.height / 2.0
+				do \main@bulletList_P.next()
+			end while
+			var bex: float :: -999.0
+			var bey: float :: -999.0
+			do \main@bulletList_E.head()
+			while(!\main@bulletList_E.term())
+				var be: \bullet@Bullet :: \main@bulletList_E.get()
+				do bex :: be.x + be.width / 2.0
+				do bey :: be.y + be.height / 2.0
+				do \main@bulletList_E.next()
+			end while
+			
+			do \main@p_ai.control(\main@player.x + \main@player.width / 2.0, \main@player.y + \main@player.height / 2.0, bpx, bpy, \main@enemy.x + \main@enemy.width / 2.0, \main@enemy.y + \main@enemy.height / 2.0, bex, bey)
+			
+			do me.move_p :: \main@p_ai.move
+			do shoot :: \main@p_ai.shoot
+		end switch
+		;行動決定
+		do \main@player.play(me.move_p, shoot, me.flag_p)
+	end func
+	+func readfile()
+		if(file@exist("q_table_\{me.filename}.txt"))
+			var handle: file@Reader :: file@makeReader("q_table_\{me.filename}.txt")
+			do handle.delimiter([',']) {区切り文字の設定}
+			
+			for i1(0, @x_num * @y_num - 1)
+				for i2(0, 8)
+					for i3(0, @x_num * @y_num - 1)
+						for i4(0, 8)
+							for i5(0, @x_num * @y_num - 1)
+								for i6(0, 8)
+									for i7(0, 1)
+										for i8(0, @x_num * @y_num - 1)
+											for i9(0, 8)
+												do @q_table[i1][i2][i3][i4][i5][i6][i7][i8][i9] :: handle.readFloat()
+											end for
+										end for
+									end for
+								end for
+							end for
+						end for
+					end for
+				end for
+			end for
+			do handle.fin()
+			do dbg@print("ファイル読み込み完了,t=\{(lib@sysTime() $ float - \main@start_time $ float) / 1000.0}秒\n")
+			do \main@resulttxt :~ "ファイル読み込み完了,t=\{(lib@sysTime() $ float - \main@start_time $ float) / 1000.0}秒\n"
+		end if
+	end func
+	+func writefile()
+		var learncount: int
+		var alllearn: int
+		for i1(0, @x_num * @y_num - 1)
+			for i2(0, 8)
+				for i3(0, @x_num * @y_num - 1)
+					for i4(0, 8)
+						for i5(0, @x_num * @y_num - 1)
+							for i6(0, 8)
+								for i7(0, 1)
+									for i8(0, @x_num * @y_num - 1)
+										for i9(0, 8)
+											if(@q_table[i1][i2][i3][i4][i5][i6][i7][i8][i9] <> 0.0)
+												do learncount :+ 1
+											end if
+											do alllearn :+ 1
+										end for
+									end for
+								end for
+							end for
+						end for
+					end for
+				end for
+			end for
+		end for
+		
+		var handle: file@Writer :: file@makeWriter("log.txt", false)
+		do handle.writeStr(\main@resulttxt) {文字列を書き込む}
+		do handle.writeStr("\nQ tableの要素数\{alllearn}個中、\{learncount}個だけ学習しているため、学習率は\{learncount $ float / alllearn $ float * 100.0}%です。\n")
+		do handle.fin()
+		do file@delFile("now_data.txt")
+		
+	end func
+end class
