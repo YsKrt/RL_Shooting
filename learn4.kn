@@ -371,7 +371,7 @@
 		end if
 	end func
 	func get_reward(ex: float, ey: float, bex: float, bey: float, px: float, py: float, bpx: float, bpy: float): float
-		if((ex - bpx).abs() < 50.0 + 25.0 + 15.0 & (ey - bpy).abs() < 50.0 + 25.0 + 15.0)
+		if((ex - bpx).abs() < 50.0 + 25.0 + 15.0& (ey - bpy).abs() < 50.0 + 25.0 + 15.0)
 			ret - 250.0
 		end if
 		if((px - bex).abs() < 50.0 + 25.0 + 15.0 & (py - bey).abs() < 50.0 + 25.0 + 15.0)

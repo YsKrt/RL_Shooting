@@ -184,7 +184,7 @@
 				;Q値の更新
 				var eta: float :: 0.2
 				var gamma: float :: 0.8
-				do r :: me.get_reward_E(_ep, _pp, _bem <> 8 ?(bep, -1), _bpm <> 8 ?(_bpp, -1))
+				do r :: me.get_reward_E(_ep, _pp, _bem <> 8 ?(_bep, -1), _bpm <> 8 ?(_bpp, -1))
 				
 				do @q_table[pp][bpp][ep][next_move2][next_shoot2][bep] :: @q_table[pp][bpp][ep][next_move2][next_shoot2][bep] * (1.0 - eta) + eta * (r + gamma * q_max_next)
 			end for
@@ -218,18 +218,17 @@
 		end for
 		
 		
-		
-		
-		if(me.time % 500 = 0)
-			;do dbg@print("m:\{me.next_m},s:\{me.next_s},q:\{q_max}\n")
+		if(me.time % 50 = 0)
+			;	do dbg@print("m:\{me.next_m},s:\{me.next_s},q:\{q_max}\n")
 			;do dbg@print("t:\{me.time}\n\{pp},\{pm},\{bpp},\{bpm},\{ep},\{me.enemy_move_to_pos(me.next_m)},\{me.next_s},\{bep},\{bem}\nq_now:\{@q_table[pp][pm][bpp][bpm][ep][me.next_m][me.next_s][bep][bem]}\n")
 		end if
 		
 		
-		
 		;行動の実行
 		do \main@enemy.play(me.enemy_move_to_pos(me.next_m), me.next_s)
+		
 	end func
+	
 	+func enemy_next_pos(ep: int, move: int): int
 		var x: int :: ep % @y_num
 		var y: int :: (ep - x) / @y_num

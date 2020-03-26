@@ -181,7 +181,7 @@
 				
 				if(@q_table[_pp][_bpp][_ep][_bep] > q_max_next)
 					do q_max_next :: @q_table[_pp][_bpp][_ep][_bep]
-					do r :: me.get_reward_E(_ep, _pp, _bem <> 8 ?(bep, -1), _bpm <> 8 ?(_bpp, -1))
+					do r :: me.get_reward_E(_ep, _pp, _bem <> 8 ?(_bep, -1), _bpm <> 8 ?(_bpp, -1))
 				end if
 				
 			end for

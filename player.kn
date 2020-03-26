@@ -4,6 +4,7 @@
 	+var hp: int
 	+var moveF: int
 	var reload: int
+	+var shootF: int
 	+func init(x: float, y: float, width: float, height: float, veloX: float, veloY: float, flag: int)
 		do me.x :: x
 		do me.y :: y
@@ -86,7 +87,6 @@
 	
 	+func play(move: int, shoot: int, flag: int)
 		
-		var shootF: int
 		switch(flag)
 		case 0
 			if(input@key(%a) = true)
@@ -117,17 +117,18 @@
 				do move :: 8
 			end if
 			if(input@key(%space) = true)
-				do shootF :: 1
+				do me.shootF :: 1
+			else
+				do me.shootF :: 0
 			end if
 		default
 			;learn側から操作
-			if(shoot = 1)
-				do shootF :: 1
-			end if
+			
+			do me.shootF :: shoot
 		end switch
 		
 		do me.control(move)
-		if(shootF = 1)
+		if(me.shootF = 1)
 			do me.shoot()
 		end if
 		do me.act()

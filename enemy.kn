@@ -4,6 +4,7 @@
 	+var hp: int
 	+var moveF: int
 	var reload: int
+	+var shootF: int
 	+func init(x: float, y: float, width: float, height: float, veloX: float, veloY: float, flag: int)
 		do me.x :: x
 		do me.y :: y
@@ -84,8 +85,8 @@
 	+func play(move: int, shoot: int)
 		do me.act()
 		do me.control(move)
-		var shootF: int :: shoot
-		if(shootF = 1)
+		do me.shootF :: shoot
+		if(me.shootF = 1)
 			do me.shoot()
 		end if
 	end func

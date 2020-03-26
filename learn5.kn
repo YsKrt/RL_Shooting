@@ -20,6 +20,7 @@ var mc_env: list<[]int>
 	var e_point: int
 	var p_point: int
 	var next_m: int
+	var next_m_pos: int
 	var target_pos_e: int
 	var next_s: int
 	*func ctor()
@@ -60,7 +61,7 @@ var mc_env: list<[]int>
 			
 			;;;;;;;;;;;;;;;;;;モンテカルロ
 			var total_r: float :: 0.0
-			var gamma: float :: 0.3
+			var gamma: float :: 0.8
 			do @mc_env.tail()
 			do @mc_r.tail()
 			
@@ -148,7 +149,6 @@ var mc_env: list<[]int>
 		var q_max: float :: -999.9
 		var q_max_next: float :: -999.9
 		var r: float
-		var next_move: int
 		var next_shoot: int
 		var bpp: int
 		var bpm: int
@@ -176,6 +176,17 @@ var mc_env: list<[]int>
 		end if
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 		
+		
+		;::::::::::::::::::::::::::::::::::::::::::::::
+		do r :: me.get_reward_E(ep, pp, bem <> 8 ?(bep, -1), bpm <> 8 ?(bpp, -1))
+		;モンテカルロ法
+		do @mc_env.add([pp, bpp, ep, me.next_m, \main@enemy.shootF, bep])
+		do @mc_r.add(r)
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		
+		
+		
+		
 		;Q値最大の行動を選ぶ
 		for move(0, 8)
 			for shoot(0, 1)
@@ -185,14 +196,16 @@ var mc_env: list<[]int>
 					if(q_max = 0.0 | (me.count <= (me.traincount $ float * 0.8) $ int & me.count % 2 = 0))
 						
 						if(me.time %lib@rnd(1, 30) = 0)
-							do next_move :: lib@rnd(0, 8)
-							do me.next_m :: me.enemy_next_pos(ep, next_move)
+							;次に行く方向
+							do me.next_m :: lib@rnd(0, 8)
+							;次に行く方向に在るマス
+							do me.next_m_pos :: me.enemy_next_pos(ep, me.next_m)
 							do me.next_s :: lib@rnd(0, 1)
 						end if
 					else
-						do next_move :: move
+						do me.next_m :: move
 						do next_shoot :: shoot
-						do me.next_m :: me.enemy_next_pos(ep, next_move)
+						do me.next_m_pos :: me.enemy_next_pos(ep, me.next_m)
 						do me.next_s :: next_shoot
 					end if
 					
@@ -200,17 +213,10 @@ var mc_env: list<[]int>
 			end for
 		end for
 		
-		;::::::::::::::::::::::::::::::::::::::::::::::
-		do r :: me.get_reward_E(ep, pp, bem <> 8 ?(bep, -1), bpm <> 8 ?(bpp, -1))
-		;モンテカルロ法
-		do @mc_env.add([pp, bpp, ep, me.enemy_move_to_pos(me.next_m), me.next_s, bep])
-		do @mc_r.add(r)
-		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-		
-		
 		
 		;行動の実行
-		do \main@enemy.play(me.enemy_move_to_pos(me.next_m), me.next_s)
+		do \main@enemy.play(me.enemy_move_to_pos(me.next_m_pos), me.next_s)
+		
 	end func
 	
 	+func enemy_next_pos(ep: int, move: int): int
