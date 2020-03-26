@@ -1,3 +1,4 @@
+;8方向センサー、行動
 +var q_table: [][][][][][][][][][]float
 +var x_num: int :: 10
 +var y_num: int :: 10
@@ -113,7 +114,7 @@
 		elif(bep = pp)
 			ret 55.0
 		end if
-		ret - 1.0
+		ret 0.0
 	end func
 	
 	+func learn_E()
@@ -371,7 +372,7 @@
 		end if
 	end func
 	func get_reward(ex: float, ey: float, bex: float, bey: float, px: float, py: float, bpx: float, bpy: float): float
-		if((ex - bpx).abs() < 50.0 + 25.0 + 15.0& (ey - bpy).abs() < 50.0 + 25.0 + 15.0)
+		if((ex - bpx).abs() < 50.0 + 25.0 + 15.0 & (ey - bpy).abs() < 50.0 + 25.0 + 15.0)
 			ret - 250.0
 		end if
 		if((px - bex).abs() < 50.0 + 25.0 + 15.0 & (py - bey).abs() < 50.0 + 25.0 + 15.0)
@@ -381,7 +382,7 @@
 		if(ex < 77.7 | (\main@WIDTH - ex) < 77.7 | ey < 77.7 | (\main@HEIGHT - ey) < 77.7)
 			ret - 33.3
 		end if
-		ret - 1.0
+		ret 0.0
 	end func
 	
 	

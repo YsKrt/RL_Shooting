@@ -1,3 +1,4 @@
+;方向、座標、行動
 +var q_table: [][][][][][][][][]float
 +var x_num: int :: 3
 +var y_num: int :: 3
@@ -111,7 +112,7 @@
 		elif(bep = pp)
 			ret 55.0
 		end if
-		ret - 1.0
+		ret 0.0
 	end func
 	
 	+func learn_E()
@@ -440,8 +441,8 @@
 				do \main@bulletList_E.next()
 			end while
 		case 3
-			var bpx: float :: -999.0
-			var bpy: float :: -999.0
+			var bpx: float :: -99999.9
+			var bpy: float :: -99999.9
 			do \main@bulletList_P.head()
 			while(!\main@bulletList_P.term())
 				var bp: \bullet@Bullet :: \main@bulletList_P.get()
@@ -449,8 +450,8 @@
 				do bpy :: bp.y + bp.height / 2.0
 				do \main@bulletList_P.next()
 			end while
-			var bex: float :: -999.0
-			var bey: float :: -999.0
+			var bex: float :: -99999.9
+			var bey: float :: -99999.9
 			do \main@bulletList_E.head()
 			while(!\main@bulletList_E.term())
 				var be: \bullet@Bullet :: \main@bulletList_E.get()

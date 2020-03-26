@@ -13,7 +13,7 @@
 func main()
 	do @resulttxt :: ""
 	var result: []char
-	do result :: wndex@inputBox(null, "学習回数,読み込む回数,操作F,学習方法", "Q Learning", "0,100,0,1", null)
+	do result :: wndex@inputBox(null, "学習回数,読み込む回数,操作F,学習方法", "Q Learning", "0,10000,0,1", null)
 	if(result =& null)
 		ret
 	end if

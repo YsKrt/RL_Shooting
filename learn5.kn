@@ -1,3 +1,4 @@
+;座標、行動、モンテカルロ法
 +var q_table: [][][][][][]float
 +var x_num: int :: 5
 +var y_num: int :: 5
@@ -49,25 +50,29 @@ var mc_env: list<[]int>
 		end if
 	end func
 	+func init()
+		var end_reward: float
 		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 		if(\main@enemy.hp <= 0)
 			do me.p_win :+ 1
+			do end_reward :: 500.0
 		end if
 		if(\main@player.hp <= 0)
 			do me.e_win :+ 1
+			do end_reward :: -777.7
 		end if
 		
 		if(\main@enemy.hp <= 0 | \main@player.hp <= 0)
-			
 			;;;;;;;;;;;;;;;;;;モンテカルロ
 			var total_r: float :: 0.0
 			var gamma: float :: 0.8
 			do @mc_env.tail()
 			do @mc_r.tail()
-			
 			while(!@mc_env.term())
 				var env: []int :: @mc_env.get()
 				var r: float :: @mc_r.get()
+				;勝負の最後に勝敗によって大きな報酬を与える
+				do r :+ end_reward
+				do end_reward :: 0.0
 				
 				do @q_table[env[0]][env[1]][env[2]][env[3]][env[4]][env[5]] :: r + total_r * gamma
 				
@@ -141,7 +146,7 @@ var mc_env: list<[]int>
 		elif(bep = pp)
 			ret 55.0
 		end if
-		ret - 1.0
+		ret 0.0
 	end func
 	
 	+func learn_E()
@@ -354,8 +359,8 @@ var mc_env: list<[]int>
 	+func learn_P()
 		var shoot: int
 		
-		var bpx: float :: -999.0
-		var bpy: float :: -999.0
+		var bpx: float :: -99999.9
+		var bpy: float :: -99999.9
 		do \main@bulletList_P.head()
 		while(!\main@bulletList_P.term())
 			var bp: \bullet@Bullet :: \main@bulletList_P.get()
@@ -363,8 +368,8 @@ var mc_env: list<[]int>
 			do bpy :: bp.y + bp.height / 2.0
 			do \main@bulletList_P.next()
 		end while
-		var bex: float :: -999.0
-		var bey: float :: -999.0
+		var bex: float :: -99999.9
+		var bey: float :: -99999.9
 		do \main@bulletList_E.head()
 		while(!\main@bulletList_E.term())
 			var be: \bullet@Bullet :: \main@bulletList_E.get()
@@ -481,16 +486,22 @@ var mc_env: list<[]int>
 	+func writefile()
 		var learncount: int
 		var alllearn: int
+		;
+		var e_point: []char :: "相手（プレイヤー)が被弾した時のQ値\n"
+		var p_point: []char :: "自分（エネミー）が被弾した時のQ値\n"
+		;
 		for i1(0, @x_num * @y_num - 1)
 			for i2(0, @x_num * @y_num - 1)
 				for i3(0, @x_num * @y_num - 1)
 					for i4(0, 8)
 						for i5(0, 1)
 							for i6(0, @x_num * @y_num - 1)
+								
 								if(@q_table[i1][i2][i3][i4][i5][i6] <> 0.0)
 									do learncount :+ 1
 								end if
 								do alllearn :+ 1
+								
 							end for
 						end for
 					end for
@@ -498,11 +509,11 @@ var mc_env: list<[]int>
 			end for
 		end for
 		
-		
 		var handle: file@Writer :: file@makeWriter("5_log.txt", false)
 		do handle.writeStr(\main@resulttxt) {文字列を書き込む}
 		do handle.writeStr("\nQ tableの要素数\{alllearn}個中、\{learncount}個だけ学習しているため、学習率は\{learncount $ float / alllearn $ float * 100.0}%です。\n")
 		do handle.fin()
+		
 		do file@delFile("5_now_data.txt")
 		
 	end func
